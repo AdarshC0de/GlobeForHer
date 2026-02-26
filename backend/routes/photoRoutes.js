@@ -30,11 +30,15 @@ router.post("/", upload.single("image"), async (req, res) => {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
+    // Get current photo count first
+    const index = await Photo.countDocuments();
+
     const photo = await Photo.create({
       url: req.file.path,
       public_id: req.file.filename,
-      lat: (Math.random() - 0.5) * 180,   // -90 to 90
-      lng: (Math.random() - 0.5) * 360,   // -180 to 180
+
+      lat: -60 + (index * 30) % 120,
+      lng: -180 + (index * 60) % 360,
     });
 
     res.json(photo);
