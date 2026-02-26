@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 export default function AdminPage() {
   const [photos, setPhotos] = useState([]);
   const [file, setFile] = useState(null);
+  const navigate = useNavigate();
 
   const fetchPhotos = async () => {
-    const res = await axios.get("http://localhost:5000/api/photos");
+    const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/photos`);
     setPhotos(res.data);
   };
 
@@ -17,17 +19,20 @@ export default function AdminPage() {
   const uploadPhoto = async () => {
     const formData = new FormData();
     formData.append("image", file);
-    await axios.post("http://localhost:5000/api/photos", formData);
+    await axios.post(`${import.meta.env.VITE_API_URL}/api/photos`, formData);
     fetchPhotos();
   };
 
   const deletePhoto = async (id) => {
-    await axios.delete(`http://localhost:5000/api/photos/${id}`);
+    await axios.delete(`${import.meta.env.VITE_API_URL}/api/photos/${id}`);
     fetchPhotos();
   };
 
   return (
     <div>
+      <button onClick={() => navigate("/")}>
+        Back to Globe
+      </button>
       <h2>Admin Panel</h2>
 
       <input type="file" onChange={e => setFile(e.target.files[0])} />
