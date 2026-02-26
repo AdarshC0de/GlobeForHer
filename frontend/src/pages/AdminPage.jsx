@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
 
-export default function AdminPage() {
+function AdminPage() {
   const [photos, setPhotos] = useState([]);
-  const [file, setFile] = useState(null);
-  const navigate = useNavigate();
 
   const fetchPhotos = async () => {
-    const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/photos`);
+    const res = await axios.get(
+      `${import.meta.env.VITE_API_URL}/api/photos`
+    );
     setPhotos(res.data);
   };
 
@@ -16,36 +15,55 @@ export default function AdminPage() {
     fetchPhotos();
   }, []);
 
-  const uploadPhoto = async () => {
-    const formData = new FormData();
-    formData.append("image", file);
-    await axios.post(`${import.meta.env.VITE_API_URL}/api/photos`, formData);
-    fetchPhotos();
-  };
-
   const deletePhoto = async (id) => {
-    await axios.delete(`${import.meta.env.VITE_API_URL}/api/photos/${id}`);
-    fetchPhotos();
+    const confirmDelete = window.confirm("Delete this photo?");
+    if (!confirmDelete) return;
+
+    await axios.delete(
+      `${import.meta.env.VITE_API_URL}/api/photos/${id}`
+    );
+
+    fetchPhotos(); // refresh list
   };
 
   return (
     <div>
-      <button onClick={() => navigate("/")}>
-        Back to Globe
-      </button>
       <h2>Admin Panel</h2>
 
-      <input type="file" onChange={e => setFile(e.target.files[0])} />
-      <button onClick={uploadPhoto}>Upload</button>
+      {/* PHOTO LIST */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "20px" }}>
+        {photos.map((photo) => (
+          <div key={photo._id} style={{ position: "relative" }}>
+            
+            <img
+              src={photo.url}
+              alt=""
+              width="200"
+              style={{ borderRadius: "8px" }}
+            />
 
-      {photos.map(photo => (
-        <div key={photo._id}>
-          <img src={photo.url} width="100" />
-          <button onClick={() => deletePhoto(photo._id)}>
-            Delete
-          </button>
-        </div>
-      ))}
+            {/* ✅ DELETE BUTTON GOES HERE */}
+            <button
+              onClick={() => deletePhoto(photo._id)}
+              style={{
+                position: "absolute",
+                top: "5px",
+                right: "5px",
+                background: "red",
+                color: "white",
+                border: "none",
+                padding: "5px 8px",
+                cursor: "pointer"
+              }}
+            >
+              X
+            </button>
+
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
+
+export default AdminPage;
