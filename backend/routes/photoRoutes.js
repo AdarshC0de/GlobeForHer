@@ -25,12 +25,23 @@ router.get("/", async (req, res) => {
 
 // Upload photo
 router.post("/", upload.single("image"), async (req, res) => {
-  const photo = await Photo.create({
-    url: req.file.path,       // Cloudinary URL
-    public_id: req.file.filename,
-  });
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
 
-  res.json(photo);
+    const photo = await Photo.create({
+      url: req.file.path,
+      public_id: req.file.filename,
+      lat: (Math.random() - 0.5) * 180,   // -90 to 90
+      lng: (Math.random() - 0.5) * 360,   // -180 to 180
+    });
+
+    res.json(photo);
+  } catch (error) {
+    console.error("UPLOAD ERROR:", error);
+    res.status(500).json({ message: error.message });
+  }
 });
 
 // Delete photo
