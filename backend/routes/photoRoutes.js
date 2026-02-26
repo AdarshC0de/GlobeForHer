@@ -30,15 +30,20 @@ router.post("/", upload.single("image"), async (req, res) => {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    // Get current photo count first
     const index = await Photo.countDocuments();
+
+    const total = 500; // controls spread density
+    const phi = Math.acos(1 - (2 * (index + 0.5)) / total);
+    const theta = Math.PI * (1 + Math.sqrt(5)) * (index + 0.5);
+
+    const lat = 90 - (phi * 180) / Math.PI;
+    const lng = (theta * 180) / Math.PI;
 
     const photo = await Photo.create({
       url: req.file.path,
       public_id: req.file.filename,
-
-      lat: -60 + (index * 30) % 120,
-      lng: -180 + (index * 60) % 360,
+      lat,
+      lng,
     });
 
     res.json(photo);
