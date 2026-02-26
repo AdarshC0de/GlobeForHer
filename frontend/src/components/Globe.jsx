@@ -1,6 +1,6 @@
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Html } from "@react-three/drei";
-import { useMemo } from "react";
+import { Canvas, useFrame, useLoader } from "@react-three/fiber";
+import { OrbitControls, Stars } from "@react-three/drei";
+import { useRef, useState } from "react";
 import * as THREE from "three";
 
 function convertLatLngToPosition(lat, lng, radius) {
@@ -14,44 +14,133 @@ function convertLatLngToPosition(lat, lng, radius) {
   return [x, y, z];
 }
 
-export default function Globe({ photos }) {
-  const radius = 2;
-
-  const photoPositions = useMemo(() => {
-    return photos.map(photo => ({
-      ...photo,
-      position: convertLatLngToPosition(photo.lat, photo.lng, radius)
-    }));
-  }, [photos]);
+function Earth() {
+  const texture = useLoader(THREE.TextureLoader, "/earth.jpg");
 
   return (
-    <Canvas camera={{ position: [0, 0, 6], fov: 60 }}>
-      <ambientLight intensity={1} />
-      <directionalLight position={[5, 5, 5]} />
+    <mesh>
+      <sphereGeometry args={[2, 64, 64]} />
+      <meshStandardMaterial
+        map={texture}
+        transparent
+        opacity={0.6}
+      />
+    </mesh>
+  );
+}
 
-      {/* Globe Wireframe */}
-      <mesh>
-        <sphereGeometry args={[radius, 64, 64]} />
-        <meshBasicMaterial color="black" wireframe />
-      </mesh>
+function PhotoSprite({ photo, radius, onClick }) {
+  const texture = useLoader(THREE.TextureLoader, photo.url);
+  texture.anisotropy = 16;
 
-      {/* Photos */}
-      {photoPositions.map(photo => (
-        <Html key={photo._id} position={photo.position}>
+  const spriteRef = useRef();
+  const position = convertLatLngToPosition(photo.lat, photo.lng, radius + 0.15);
+
+  const [hovered, setHovered] = useState(false);
+
+  useFrame(() => {
+    if (spriteRef.current) {
+      const target = hovered ? 0.8 : 0.7;
+      spriteRef.current.scale.lerp(
+        new THREE.Vector3(target, target, target),
+        0.08
+      );
+    }
+  });
+
+  return (
+    <sprite
+      ref={spriteRef}
+      position={position}
+      scale={[0.7, 0.7, 0.7]}
+      onPointerOver={() => setHovered(true)}
+      onPointerOut={() => setHovered(false)}
+      onClick={() => onClick(photo.url)}
+    >
+      <spriteMaterial map={texture} />
+    </sprite>
+  );
+}
+
+function RotatingGlobe({ photos, setSelectedPhoto }) {
+  const groupRef = useRef();
+  const radius = 2;
+
+  useFrame(() => {
+    if (groupRef.current) {
+      groupRef.current.rotation.y += 0.0012;
+    }
+  });
+
+  return (
+    <group ref={groupRef}>
+      <Earth />
+
+      {photos.map(photo => (
+        <PhotoSprite
+          key={photo._id}
+          photo={photo}
+          radius={radius}
+          onClick={setSelectedPhoto}
+        />
+      ))}
+    </group>
+  );
+}
+
+export default function Globe({ photos }) {
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
+
+  return (
+    <>
+      <Canvas camera={{ position: [0, 0, 7], fov: 55 }}>
+        <color attach="background" args={["#000000"]} />
+
+        <Stars
+          radius={300}
+          depth={80}
+          count={8000}
+          factor={2}
+          saturation={0}
+          fade
+          speed={0.5}
+        />
+
+        <ambientLight intensity={1.2} />
+
+        <RotatingGlobe
+          photos={photos}
+          setSelectedPhoto={setSelectedPhoto}
+        />
+
+        <OrbitControls enableZoom enableDamping dampingFactor={0.05} />
+      </Canvas>
+
+      {selectedPhoto && (
+        <div
+          onClick={() => setSelectedPhoto(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.95)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+          }}
+        >
           <img
-            src={photo.url}
+            src={selectedPhoto}
             alt=""
             style={{
-              width: "40px",
-              height: "40px",
-              borderRadius: "50%",
-              cursor: "pointer"
+              maxWidth: "85%",
+              maxHeight: "85%",
+              borderRadius: "12px",
+              boxShadow: "0 0 60px rgba(255,255,255,0.2)"
             }}
           />
-        </Html>
-      ))}
-
-      <OrbitControls enableZoom />
-    </Canvas>
+        </div>
+      )}
+    </>
   );
 }
