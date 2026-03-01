@@ -30,14 +30,22 @@ router.post("/", upload.single("image"), async (req, res) => {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    const index = await Photo.countDocuments();
+    const count = await Photo.countDocuments();
 
-    const total = 500; // controls spread density
-    const phi = Math.acos(1 - (2 * (index + 0.5)) / total);
-    const theta = Math.PI * (1 + Math.sqrt(5)) * (index + 0.5);
+    // Golden angle in radians
+    const goldenAngle = Math.PI * (3 - Math.sqrt(5));
 
-    const lat = 90 - (phi * 180) / Math.PI;
-    const lng = (theta * 180) / Math.PI;
+    // Evenly distribute from -1 to 1
+    const y = 1 - (count / (count + 1)) * 2; 
+    const radius = Math.sqrt(1 - y * y);
+    const theta = goldenAngle * count;
+
+    const x = Math.cos(theta) * radius;
+    const z = Math.sin(theta) * radius;
+
+    // Convert 3D to lat/lng
+    const lat = Math.asin(y) * (180 / Math.PI);
+    const lng = Math.atan2(z, x) * (180 / Math.PI);
 
     const photo = await Photo.create({
       url: req.file.path,
